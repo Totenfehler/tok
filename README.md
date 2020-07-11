@@ -125,7 +125,7 @@ Files: 1120
 ```
 If you forget to run `repair` you will not break anything but untracked videos will be redownloaded and log an error when attempting to overwrite the existing video.
 #### I'm on a different drive but I want to save posts
-`tok` does not support merging multiple DBs currently, but if you have access to the DB file and not the video directory, .e.g, it's on a larger disconnected external HDD you can continue to scrape locally and move the files later. First edit your configured `DL_DIR` in `tok.py` to an existing directory then run as normal.
+`tok` does not support merging multiple DBs currently, but if you have access to the DB file and not the video directory, .e.g, it's on a larger disconnected external HDD you can continue to scrape locally and move the files later. First edit your configured `DL_DIR` in `tok.py` to an existing directory then run as normal. #Note# `tok` uses SQLite in WAL mode by default so for moving or backing up your DB you MUST back up the `db,wal,sh` files.
 
 Later when you have access to your main download directory you can move an individual user's posts using `tok move user` or all posts at a location using `mvall src dest`.
 #### I'm getting 403s but the posts are public
