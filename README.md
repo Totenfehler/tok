@@ -14,7 +14,7 @@ $ npm root -g
 $ node /path/to/node_modules/tiktok-signature/listen.js
 TikTok Signature server started
 ```
-To install Python `requests` package, `pip install requests`.
+To install Python `requests` and `tqdm` packages, `pip install requests tqdm`.
 
 Configure your scraper script by opening `tok.py` and editing the config values near the top.
 ```
