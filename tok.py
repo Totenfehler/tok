@@ -670,6 +670,7 @@ if len(args) > 1:
 									fails += 1
 							cursor.executemany("INSERT INTO posts VALUES (?,?,?,?,?)", post_rows)
 							cursor.executemany("INSERT INTO downloads VALUES (?,?,?)", dl_rows)
+							print("Saving import info in DB...")
 							conn.commit()
 							print("Imported {}/{} posts".format(len(fpaths)-fails, len(fpaths)))
 						else:
@@ -830,16 +831,20 @@ if len(args) > 1:
 		elif "add" == cmd:
 			assert len(args) > 2
 			for username in args[2:]:
-				_,data = fetch_tokker(username)
-				if data is not None:
-					msg = add_user(username, data, cursor)
-					if msg:
-						print(msg)
+				result = fetch_tokker(username)
+				if result is not None:
+					_,data = result
+					if data is not None:
+						msg = add_user(username, data, cursor)
+						if msg:
+							print(msg)
+						else:
+							print(username, "was already added.")
+						conn.commit()
 					else:
-						print(username, "was already added.")
-					conn.commit()
+						print("No user found", username)
 				else:
-					print("No user found", username)
+					print("Can't find user", username)
 	else:
 		print("Invalid Command", args[1:])
 else:
