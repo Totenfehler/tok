@@ -138,7 +138,7 @@ If multiple zero-byte responses from tiktok are detected `tok` will terminate du
 Download failures due to 404, 403, etc will be logged to the user. This likely means the post has been deleted or made private, `tok` will not attempt to redownload these posts unless you call `refresh`.
 If the reported failures were not individually logged then they were 429s or timeouts, these are intermitent and will be retried the next time you call `dl` or `scan`.
 
-#### All Commands
+### All Commands
 - `info [usernames...]` print global or username info
 - `add usernames...` add or update users
 - `ls` list tracked users
@@ -154,3 +154,7 @@ If the reported failures were not individually logged then they were 429s or tim
 - `repair username` fix up db downloads for user
 - `move username src dest` move users files from src to dest
 - `mvall src dest` move all user files from src to dest
+
+### ToDos
+- single post download command with support for adding users not flagged for normal scraping
+- possible retry logic for 429 status responses
