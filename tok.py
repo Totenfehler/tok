@@ -653,7 +653,7 @@ if len(args) > 1:
 							fails = 0
 							saved_posts = set(row["pid"] for row in cursor.execute("SELECT * FROM posts WHERE uid = ?", (uid,)))
 							dl_rows,post_rows = [],[]
-							for p in fpaths:
+							for p in tqdm(fpaths):
 								if p.stem.isdigit():
 									location = user_dir/p
 									if not location.exists():
