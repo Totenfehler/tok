@@ -210,7 +210,10 @@ def make_user_dirs(root, uid, usernames):
 	for name in usernames:
 		p = root/"users"/name
 		if not p.exists():
-			p.symlink_to(path, target_is_directory=True)
+			if WINDOWS:
+				subprocess.check_call('mklink /J "%s" "%s"' % (p, path), shell=True)
+			else:
+				p.symlink_to(path, target_is_directory=True)
 
 def ts():
 	return int(round(time.time() * 1000))
