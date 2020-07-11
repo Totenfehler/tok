@@ -158,3 +158,4 @@ If the reported failures were not individually logged then they were 429s or tim
 ### ToDos
 - single post download command with support for adding users not flagged for normal scraping
 - possible retry logic for 429 status responses
+- command to clear hd url cache
