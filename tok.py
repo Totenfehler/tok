@@ -29,7 +29,9 @@ UIDS_DIR = DL_DIR.joinpath("uids")
 SCRATCH_DIR = DL_DIR.joinpath("scratch")
 CLIP_DIRS = [DL_DIR, USERS_DIR, UIDS_DIR, SCRATCH_DIR]
 
+PROGRAM_VERSION = "1.0.0"
 GLOBAL_ZERO_BYTE_COUNTER = 0
+CONTENT_REMOVAL_SIZE = 74929
 PROG_TITLE = "======" + "TTG Scraper" + "======"
 FK_PRAGMA = "PRAGMA foreign_keys = ON"
 USER_VERSION_PRAGMA = "PRAGMA user_version = 1"
@@ -280,9 +282,15 @@ def save_posts(posts, cursor):
 		music_rows.append((music["id"], music["title"], music.get("authorName"), music["original"]))
 		post_rows.append((post["id"], post["author"]["id"], music["id"], post["desc"], post["createTime"]*1000))
 		raw_rows.append((post["id"], json.dumps(post, separators=(",",":")), None))
-	cursor.executemany("INSERT OR REPLACE INTO music VALUES (?,?,?,?)", music_rows)
-	cursor.executemany("INSERT INTO posts VALUES (?,?,?,?,?)", post_rows)
-	cursor.executemany("INSERT INTO raw_posts VALUES (?,?,?)", raw_rows)
+	assert len(music_rows) == len(post_rows) == len(raw_rows)
+	chunk_size = 100
+	mchunks,pchunks,rchunks = chunkify(music_rows,chunk_size),chunkify(post_rows,chunk_size),chunkify(raw_rows,chunk_size)
+	for chunk in tqdm(list(zip(mchunks,pchunks,rchunks))):
+		mr,pr,rr = chunk
+		cursor.executemany("INSERT OR REPLACE INTO music VALUES (?,?,?,?)", mr)
+		cursor.executemany("INSERT INTO posts VALUES (?,?,?,?,?)", pr)
+		cursor.executemany("INSERT INTO raw_posts VALUES (?,?,?)", rr)
+		conn.commit()
 
 def update_posts(posts, cursor):
 	music_rows = []
@@ -294,9 +302,15 @@ def update_posts(posts, cursor):
 		music_rows.append((music["id"], music["title"], music.get("authorName"), music["original"]))
 		post_rows.append((post["id"], post["author"]["id"], music["id"], post["desc"], post["createTime"]*1000))
 		raw_rows.append((post["id"], json.dumps(post, separators=(",",":")),None))
-	cursor.executemany("INSERT OR REPLACE INTO music VALUES (?,?,?,?)", music_rows)
-	cursor.executemany("INSERT OR REPLACE INTO posts VALUES (?,?,?,?,?)", post_rows)
-	cursor.executemany("INSERT OR REPLACE INTO raw_posts VALUES (?,?,?)", raw_rows)
+	assert len(music_rows) == len(post_rows) == len(raw_rows)
+	chunk_size = 100
+	mchunks,pchunks,rchunks = chunkify(music_rows,chunk_size),chunkify(post_rows,chunk_size),chunkify(raw_rows,chunk_size)
+	for chunk in tqdm(list(zip(mchunks,pchunks,rchunks))):
+		mr,pr,rr = chunk
+		cursor.executemany("INSERT OR REPLACE INTO music VALUES (?,?,?,?)", mr)
+		cursor.executemany("INSERT OR REPLACE INTO posts VALUES (?,?,?,?,?)", pr)
+		cursor.executemany("INSERT OR REPLACE INTO raw_posts VALUES (?,?,?)", rr)
+		conn.commit()
 
 def get_hd(url):
 	with requests.get(url, timeout=30, headers=BASE_HEADERS, stream=True) as resp:
@@ -440,7 +454,7 @@ def download_user(username, cursor):
 	assert len(usernames) > 0
 	make_user_dirs(DL_DIR, uid, usernames)
 	post_rows = cursor.execute("SELECT posts.pid,json,location,status from posts left join raw_posts on posts.pid = raw_posts.pid left join downloads on downloads.pid = posts.pid where uid = ?", (uid,)).fetchall()
-	print("Tracking {} posts for {}".format(len(post_rows), username))
+	# print("Tracking {} posts for {}".format(len(post_rows), username))
 	accum,nsaved,nfailed,nleft = [],0,0,0
 	for row in post_rows:
 		if row["location"] is not None:
@@ -451,7 +465,7 @@ def download_user(username, cursor):
 			accum.append(row)
 			nleft += 1
 	post_rows = accum
-	print("Saved: {}, Failed: {}, Unsaved: {}".format(nsaved, nfailed, nleft))
+	print("Total: {}, Saved: {}, Failed: {}, Unsaved: {}".format(len(post_rows), nsaved, nfailed, nleft))
 	print("Extracting {} HD posts ids for {}".format(len(post_rows), username))
 	pids = [row["pid"] for row in post_rows]
 	posts = [json.loads(row["json"]) for row in post_rows]
@@ -601,8 +615,9 @@ if len(args) > 1:
 				print("Posts:  ", ntoks)
 				print("Files:  ", nfiles)
 				print("Music:  ", nmusic)
-				print("Space:  ", du(DL_DIR))
-				print("DB:     ", du(DB_FILE))
+				print("Space:  ", du(DL_DIR), DL_DIR)
+				print("DB:     ", du(DB_FILE), DB_FILE)
+				print("Version:", PROGRAM_VERSION)
 		elif "lookup" == cmd:
 			assert len(args) > 2
 			for arg in args[2:]:
@@ -718,19 +733,18 @@ if len(args) > 1:
 			uid = name2uid[username]
 			usernames = [row["username"] for row in cursor.execute("SELECT username FROM usernames WHERE uid = ?", (uid,))]
 			make_user_dirs(dest, uid, usernames)
-			rows = cursor.execute("SELECT uid,posts.pid,location from downloads join posts on posts.pid = downloads.pid where uid = ?", (uid,))
+			rows = cursor.execute("SELECT uid,posts.pid,location,hd from downloads join posts on posts.pid = downloads.pid where uid = ?", (uid,)).fetchall()
 			new_rows = []
-			for row in rows:
-				uid,pid = row["uid"],row["pid"]
+			for row in tqdm(rows):
+				uid,pid,hd = row["uid"],row["pid"],row["hd"]
 				full_path = Path(row["location"])
 				root_path = Path(*full_path.parts[:-3])
 				file_path = Path(*full_path.parts[-3:])
 				if root_path == src:
 					new_path = dest/file_path
-					# full_path.rename(new_path)
 					shutil.move(full_path, new_path)
-					new_rows.append((pid,str(new_path)))
-			cursor.executemany("INSERT OR REPLACE INTO downloads VALUES (?,?)", new_rows)
+					new_rows.append((pid,str(new_path),hd))
+			cursor.executemany("INSERT OR REPLACE INTO downloads VALUES (?,?,?)", new_rows)
 			conn.commit()
 		elif "mvall" == cmd:
 			assert len(args) == 4
@@ -740,7 +754,7 @@ if len(args) > 1:
 			qq = (str(src)+"%",)
 			rows = cursor.execute("SELECT uid,posts.pid,location,hd FROM downloads JOIN posts ON downloads.pid = posts.pid WHERE location LIKE ?", qq).fetchall()
 			new_rows = []
-			for row in rows:
+			for row in tqdm(rows):
 				uid,pid,hd = row["uid"],row["pid"],row["hd"]
 				usernames = [row["username"] for row in cursor.execute("SELECT username FROM usernames WHERE uid = ?", (uid,))]
 				full_path = Path(row["location"])
@@ -760,6 +774,8 @@ if len(args) > 1:
 				full_path = Path(row["location"])
 				if not full_path.exists():
 					print("WARNING: {} missing!".format(full_path))
+				elif CONTENT_REMOVAL_SIZE - 1000 < full_path.stat().st_size < CONTENT_REMOVAL_SIZE + 1000:
+					print("WARNING: possible content removal video", full_path)
 		elif "ls" == cmd:
 			assert len(args) in (2,3)
 			if len(args) == 2:
@@ -853,3 +869,4 @@ else:
 		print("{}: {}".format(cmd, COMMANDS[cmd]))
 
 conn.close()
+
