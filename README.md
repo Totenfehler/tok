@@ -160,6 +160,7 @@ If the reported failures were not individually logged then they were 429s or tim
 ### ToDos
 - single post download command with support for adding users not flagged for normal scraping
 - possible retry logic for 429 status responses
+- improve SQL insert perf for raw_posts
 - command to clear hd url cache
 - user defined nick name support since usernames are hard to remember
 - easy setup script for cross platform tab completion
