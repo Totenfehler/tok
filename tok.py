@@ -29,7 +29,7 @@ UIDS_DIR = DL_DIR.joinpath("uids")
 SCRATCH_DIR = DL_DIR.joinpath("scratch")
 CLIP_DIRS = [DL_DIR, USERS_DIR, UIDS_DIR, SCRATCH_DIR]
 
-PROGRAM_VERSION = "1.0.0"
+PROGRAM_VERSION = "1.0.1"
 GLOBAL_ZERO_BYTE_COUNTER = 0
 CONTENT_REMOVAL_SIZE = 74929
 PROG_TITLE = "======" + "TTG Scraper" + "======"
@@ -319,7 +319,7 @@ def get_hd(url):
 		chunks = []
 		for chunk in resp.iter_content(chunk_size=128*1012):
 			index = chunk.find(b"vid:")
-			if index != -1:
+			if index != -1 and index+36 <= len(chunk):
 				return True, chunk[index+4:index+36]
 			chunks.append(chunk)
 		content = b"".join(chunks) # check in case needle was on chunk boundary
