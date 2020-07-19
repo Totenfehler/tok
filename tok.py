@@ -29,7 +29,7 @@ UIDS_DIR = DL_DIR.joinpath("uids")
 SCRATCH_DIR = DL_DIR.joinpath("scratch")
 CLIP_DIRS = [DL_DIR, USERS_DIR, UIDS_DIR, SCRATCH_DIR]
 
-PROGRAM_VERSION = "1.0.1"
+PROGRAM_VERSION = "1.0.2"
 GLOBAL_ZERO_BYTE_COUNTER = 0
 CONTENT_REMOVAL_SIZE = 74929
 PROG_TITLE = "======" + "TTG Scraper" + "======"
@@ -806,8 +806,8 @@ if len(args) > 1:
 				print("Saved", len(a))
 				print("seen", len(b))
 				## don't update posts we downloaded already
-				notdl = {row["pid"] for row in rows if row["location"] is None}
-				inp = [post for post in posts if post["id"] in notdl]
+				dled = {row["pid"] for row in rows if row["location"] is not None}
+				inp = [post for post in posts if post["id"] not in dled]
 				print("Updating {} posts that are not downloaded.".format(len(inp)))
 				update_posts(inp, cursor)
 				conn.commit()
